@@ -44,3 +44,9 @@ def assets_sectors():
     df = df.reset_index(drop=True)
     return df[['setor', 'subsetor', 'segmento', 'governanca', 'base_ticker']]
 
+
+def assets_df(index_name='IBRA'):
+    sectors = assets_sectors()
+    assets = index_composition(index_name)
+    assets['base_ticker'] = assets['ticker'].str[:4]
+    return assets.merge(sectors, on='base_ticker')
