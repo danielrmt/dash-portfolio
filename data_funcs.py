@@ -15,6 +15,7 @@ def index_composition(index_name='IBRA'):
     acoes.columns = ['ticker', 'empresa', 'tipo', 'qtde', 'part']
     acoes['part'] = acoes['part'] / 1000
     acoes = acoes[acoes['part'] != 100]
+    acoes = acoes.sort_values('part', ascending=False)
     return acoes
 
 
@@ -58,7 +59,7 @@ def cache_data(fn, fun, *args):
 
 
 def assets_df(index_name='IBRA'):
-    sectors = cache_data('assets.csv', assets_sectors)
+    sectors = cache_data('setores.csv', assets_sectors)
     assets = cache_data('ibra.csv', index_composition, index_name)
     assets['base_ticker'] = assets['ticker'].str[:4]
     return assets.merge(sectors, on='base_ticker')
