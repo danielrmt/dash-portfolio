@@ -1,3 +1,4 @@
+import os
 import io
 import numpy as np
 import pandas as pd
@@ -45,8 +46,19 @@ def assets_sectors():
     return df[['setor', 'subsetor', 'segmento', 'governanca', 'base_ticker']]
 
 
+def cache_data(fn, fun, *args):
+    if os.path.exists(fn):
+        print(f'{fn} exists, using cached version')
+        return pd.read_csv(fn)
+    else:
+        print(f'{fn} does not exist, creating file')
+        df = fun()
+        df.to_csv(fn, index=False)
+        return df
+
+
 def assets_df(index_name='IBRA'):
-    sectors = assets_sectors()
-    assets = index_composition(index_name)
+    sectors = cache_data('assets.csv', assets_sectors)
+    assets = cache_data('ibra.csv', index_composition, index_name)
     assets['base_ticker'] = assets['ticker'].str[:4]
     return assets.merge(sectors, on='base_ticker')
