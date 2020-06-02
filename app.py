@@ -1,10 +1,12 @@
+import pandas as pd
+from pandas_datareader import data as wb
 
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-import dash_table
+import dash_table as dt
 from dash_table.Format import Format, Scheme, Sign
 
 import plotly.graph_objects as go
@@ -42,6 +44,7 @@ app.title = 'Portfolio'
 #
 navbar = dbc.NavbarSimple(
     children=[
+        dbc.Button('Selecionar ativos', id='assets_open', className='ml-auto'),
     ],
     brand=app.title,
     brand_href="#",
@@ -58,7 +61,7 @@ assets_modal = dbc.Modal([
         'Selecionar ativos',
     ]),
     dbc.ModalBody([
-        dash_table.DataTable(
+        dt.DataTable(
             id='assets_table',
             data=assets.to_dict('records'),
             columns=[{"name": i, "id": i} for i in assets.columns],
@@ -72,10 +75,25 @@ assets_modal = dbc.Modal([
 ], id='assets_modal', size="xl", scrollable=True)
 
 
+#
+tabs = dbc.Tabs([
+    dbc.Tab([
+        html.H4('Cotações'),
+        dt.DataTable(
+            id='prices_table',
+            data=[], columns=[],
+            style_as_list_view=True, style_header={'fontWeight': 'bold'},
+        )
+    ], label='Cotações')
+])
+
+
 # LAYOUT
 app.layout = html.Div([
     navbar,
-    dbc.Button('Selecionar ativos', id='assets_open', className='ml-auto'),
+    html.Div([
+        tabs,
+    ], className='container-fluid'),
     assets_modal
 ])
 
@@ -94,6 +112,28 @@ def toggle_search_modal(n1, n2, is_open):
     return is_open
 
 #
+@app.callback(
+    [Output('prices_table', 'data'),
+     Output('prices_table', 'columns')],
+    [Input('assets_table', 'data'),
+     Input('assets_table', 'selected_rows')]
+)
+def update_prices(assets_table, selected_rows):
+    df = pd.DataFrame(assets_table)
+    tickers = df['ticker'][df.index.isin(selected_rows)].values
+    df = pd.concat([
+        wb.DataReader(f'{t}.SA', start='2010-1-1',
+            data_source='yahoo'
+            )[['Adj Close']]
+        .rename(columns={'Adj Close': t}) for t in tickers
+    ], axis=1).reset_index()
+    cols = [{
+        'name': s,
+        'id': s
+    } for s in df.columns]
+    return df.to_dict('records'), cols
 
+
+#
 if __name__ == "__main__":
     app.run_server(debug=True)
