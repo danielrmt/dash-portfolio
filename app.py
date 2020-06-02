@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pandas_datareader import data as wb
 
@@ -78,6 +79,15 @@ assets_modal = dbc.Modal([
 #
 tabs = dbc.Tabs([
     dbc.Tab([
+        html.H4('Matriz de Covariância'),
+        dt.DataTable(
+            id='cov_matrix',
+            data=[], columns=[],
+            style_as_list_view=True, style_header={'fontWeight': 'bold'},
+        )
+    ], label='Covariância'),
+    #
+    dbc.Tab([
         html.H4('Cotações'),
         dt.DataTable(
             id='prices_table',
@@ -127,6 +137,17 @@ def update_prices(assets_table, selected_rows):
         'id': s
     } for s in df.columns]
     return df.to_dict('records'), cols
+
+@app.callback(
+    [Output('cov_matrix', 'data'),
+     Output('cov_matrix', 'columns')],
+    [Input('prices_table', 'data')]
+)
+def update_covmatrix(prices):
+    logreturns = np.log(pd.DataFrame(prices).set_index('index')).diff() * 252
+    covmatrix = logreturns.cov().reset_index()
+    return covmatrix.to_dict('records'), \
+        [{'name':s,'id':s} for s in covmatrix.columns]
 
 
 #
