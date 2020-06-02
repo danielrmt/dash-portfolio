@@ -6,6 +6,7 @@ import requests
 import urllib.request as ur
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
+from pandas_datareader import data as wb
 
 
 def index_composition(index_name='IBRA'):
@@ -47,13 +48,16 @@ def assets_sectors():
     return df[['setor', 'subsetor', 'segmento', 'governanca', 'base_ticker']]
 
 
-def cache_data(fn, fun, *args):
+def cache_data(fn, fun, *args, **kwargs):
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+    fn = os.path.join('data', fn)
     if os.path.exists(fn):
         print(f'{fn} exists, using cached version')
         return pd.read_csv(fn)
     else:
         print(f'{fn} does not exist, creating file')
-        df = fun()
+        df = fun(*args, **kwargs)
         df.to_csv(fn, index=False)
         return df
 
@@ -63,3 +67,20 @@ def assets_df(index_name='IBRA'):
     assets = cache_data('ibra.csv', index_composition, index_name)
     assets['base_ticker'] = assets['ticker'].str[:4]
     return assets.merge(sectors, on='base_ticker')
+
+
+def get_quote(ticker):
+    df = (
+        wb.DataReader(f'{ticker}.SA', start='2010-1-1', data_source='yahoo')
+        .rename(columns={'Adj Close': ticker})
+        .reset_index()
+    )
+    return df[['Date', ticker]]
+
+
+def get_quotes(tickers):
+    return pd.concat([
+        cache_data(f'{t}.csv', get_quote, t)
+        .set_index('Date')
+        for t in tickers
+    ], axis=1).reset_index()

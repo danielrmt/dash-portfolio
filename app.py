@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
 
-from data_funcs import assets_df
+from data_funcs import assets_df, get_quotes
 
 
 #
@@ -31,7 +31,7 @@ pio.templates.default = 'custom'
 #
 assets = assets_df('IBRA')
 is_main_ticker = assets.groupby('base_ticker')['part'].max()
-selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:10]
+selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:5]
 
 #
 app = dash.Dash(
@@ -121,12 +121,7 @@ def toggle_search_modal(n1, n2, is_open):
 def update_prices(assets_table, selected_rows):
     df = pd.DataFrame(assets_table)
     tickers = df['ticker'][df.index.isin(selected_rows)].values
-    df = pd.concat([
-        wb.DataReader(f'{t}.SA', start='2010-1-1',
-            data_source='yahoo'
-            )[['Adj Close']]
-        .rename(columns={'Adj Close': t}) for t in tickers
-    ], axis=1).reset_index()
+    df = get_quotes(tickers)
     cols = [{
         'name': s,
         'id': s
