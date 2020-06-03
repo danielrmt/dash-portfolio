@@ -34,7 +34,7 @@ plot_style = {'height': '80vh'}
 #
 assets = assets_df('IBRA')
 is_main_ticker = assets.groupby('base_ticker')['part'].max()
-selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:20]
+selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:10]
 
 #
 app = dash.Dash(
@@ -161,7 +161,9 @@ def update_data(assets_table, selected_rows):
 )
 def update_logreturns_plot(logreturns):
     df = pd.DataFrame(logreturns).melt('Date').sort_values('Date')
-    fig = px.line(df, x='Date', y='value', line_group='variable')
+    fig = px.line(df, x='Date', y='value', facet_row='variable',
+        labels={'Date': '', 'value': ''})
+    fig.update_yaxes(matches=None)
     return fig
 
 
@@ -171,8 +173,10 @@ def update_logreturns_plot(logreturns):
 )
 def update_logreturns_ridge_plot(logreturns):
     df = pd.DataFrame(logreturns).set_index('Date')
-    fig = px.violin(df.melt(), x='value', y='variable')
-    fig.update_traces(orientation='h', side='positive', width=3, points=False)
+    fig = px.violin(df.melt(), x='value', y='variable',
+        labels={'value': '', 'variable': ''})
+    fig.update_traces(orientation='h', side='negative', width=3, points=False)
+    fig.update_yaxes(autorange="reversed")
     return fig
 
 
