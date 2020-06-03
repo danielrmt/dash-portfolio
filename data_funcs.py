@@ -81,6 +81,7 @@ def get_quote(ticker):
 def get_quotes(tickers):
     return pd.concat([
         cache_data(f'{t}.csv', get_quote, t)
+        .assign(Date=lambda x: pd.to_datetime(x['Date']))
         .set_index('Date')
         for t in tickers
     ], axis=1).reset_index()

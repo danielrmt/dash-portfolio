@@ -13,6 +13,7 @@ from dash_table.Format import Format, Scheme, Sign
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
+import plotly.figure_factory as ff
 
 from data_funcs import assets_df, get_quotes
 
@@ -28,11 +29,12 @@ pio.templates["custom"] = go.layout.Template(
 )
 pio.templates.default = 'custom'
 
+plot_style = {'height': '80vh'}
 
 #
 assets = assets_df('IBRA')
 is_main_ticker = assets.groupby('base_ticker')['part'].max()
-selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:5]
+selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:20]
 
 #
 app = dash.Dash(
@@ -79,22 +81,26 @@ assets_modal = dbc.Modal([
 #
 tabs = dbc.Tabs([
     dbc.Tab([
-        html.H4('Matriz de Covariância'),
-        dt.DataTable(
-            id='cov_matrix',
-            data=[], columns=[],
-            style_as_list_view=True, style_header={'fontWeight': 'bold'},
-        )
-    ], label='Covariância'),
+        html.H4('Log-Retornos'),
+        dcc.Graph('logreturns_plot', style=plot_style)
+    ], label='Retornos'),
     #
     dbc.Tab([
-        html.H4('Cotações'),
-        dt.DataTable(
-            id='prices_table',
-            data=[], columns=[],
-            style_as_list_view=True, style_header={'fontWeight': 'bold'},
-        )
-    ], label='Cotações')
+        html.H4('Distribuição dos retornos'),
+        dcc.Graph('logreturns_ridge_plot', style=plot_style)
+    ], label='Distribuição'),
+    #
+    dbc.Tab([
+        html.H4('Matriz de Covariância'),
+        dcc.Graph('covmatrix_plot', style=plot_style)
+    ], label='Covariância'),
+    #
+])
+
+#
+stores = html.Div([
+    dcc.Store(id=f"{s}_data")
+    for s in['assets', 'prices', 'logreturns', 'covmatrix']
 ])
 
 
@@ -104,7 +110,8 @@ app.layout = html.Div([
     html.Div([
         tabs,
     ], className='container-fluid'),
-    assets_modal
+    assets_modal,
+    stores
 ])
 
 
@@ -121,33 +128,68 @@ def toggle_search_modal(n1, n2, is_open):
         return not is_open
     return is_open
 
-#
+
 @app.callback(
-    [Output('prices_table', 'data'),
-     Output('prices_table', 'columns')],
+    [Output('prices_data', 'data'),
+     Output('logreturns_data', 'data'),
+     Output('covmatrix_data', 'data')],
     [Input('assets_table', 'data'),
      Input('assets_table', 'selected_rows')]
 )
-def update_prices(assets_table, selected_rows):
+def update_data(assets_table, selected_rows):
     df = pd.DataFrame(assets_table)
-    tickers = df['ticker'][df.index.isin(selected_rows)].values
-    df = get_quotes(tickers)
-    cols = [{
-        'name': s,
-        'id': s
-    } for s in df.columns]
-    return df.to_dict('records'), cols
+    assets = df[df.index.isin(selected_rows)][['ticker', 'part']]
+    tickers = assets['ticker'].values
+    prices = get_quotes(tickers)
+    logreturns = (
+        np.log(prices.set_index('Date'))
+        .resample('MS')
+        .last()
+        .diff()
+        .reset_index()
+    )
+    
+    covmatrix = logreturns.cov().reset_index()
+    return prices.to_dict('records'), \
+        logreturns.to_dict('records'), \
+        covmatrix.to_dict('records')
+
 
 @app.callback(
-    [Output('cov_matrix', 'data'),
-     Output('cov_matrix', 'columns')],
-    [Input('prices_table', 'data')]
+    Output('logreturns_plot', 'figure'),
+    [Input('logreturns_data', 'data')]
 )
-def update_covmatrix(prices):
-    logreturns = np.log(pd.DataFrame(prices).set_index('index')).diff() * 252
-    covmatrix = logreturns.cov().reset_index()
-    return covmatrix.to_dict('records'), \
-        [{'name':s,'id':s} for s in covmatrix.columns]
+def update_logreturns_plot(logreturns):
+    df = pd.DataFrame(logreturns).melt('Date').sort_values('Date')
+    fig = px.line(df, x='Date', y='value', line_group='variable')
+    return fig
+
+
+@app.callback(
+    Output('logreturns_ridge_plot', 'figure'),
+    [Input('logreturns_data', 'data')]
+)
+def update_logreturns_ridge_plot(logreturns):
+    df = pd.DataFrame(logreturns).set_index('Date')
+    fig = px.violin(df.melt(), x='value', y='variable')
+    fig.update_traces(orientation='h', side='positive', width=3, points=False)
+    return fig
+
+
+@app.callback(
+    Output('covmatrix_plot', 'figure'),
+    [Input('covmatrix_data', 'data')]
+)
+def update_covmatrix_plot(covmatrix):
+    df = pd.DataFrame(covmatrix).set_index('index')
+    cols = df.columns.values.tolist()
+    z = df.values.tolist()
+    ztext = np.round(z, 5)
+    fig = ff.create_annotated_heatmap(
+        z, x=cols, y=cols, annotation_text=ztext, colorscale='Viridis'
+    )
+    fig.update_yaxes(autorange="reversed")
+    return fig
 
 
 #
