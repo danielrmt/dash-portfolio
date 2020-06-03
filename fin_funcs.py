@@ -11,7 +11,7 @@ class MeanVariancePortfolio:
         return self.expected_returns.T @ weights
 
     def portfolio_covariance(self, weights):
-        returnweights.T @ self.covariance_matrix @ weights
+        return weights.T @ self.covariance_matrix @ weights
 
     def frontier(self, min=0, max=.05, step=.0001):
         sig_inv = np.linalg.inv(self.covariance_matrix)
