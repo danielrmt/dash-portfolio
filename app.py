@@ -265,21 +265,19 @@ def update_frontier_plot(logreturns, assets, fronteira):
         left_on='ticker', right_index=True
     )
     ativos['sharpe'] = ativos['implied'] / ativos['std']
-
-    ativos = ativos.rename(columns={'mean': 'historical'})
+    ativos['error'] = ativos['implied'] - ativos['mean']
+    ativos['historical+'] = np.where(ativos['error'] > 0, ativos['error'], 0)
+    ativos['historical-'] = np.where(ativos['error'] < 0, -ativos['error'], 0)
 
     fig = px.line(
         fronteira, x='sigma', y='mu',
         labels={'sigma': 'volatilidade', 'mu': 'retorno'}
     )
 
-    df = (
-        ativos[['ticker', 'std', 'historical', 'implied']]
-        .melt(['ticker', 'std'])
-        .sort_values('variable')
-    )
     scatter = px.scatter(
-        ativos, x='std', y='implied', text='ticker', size='sharpe')
+        ativos, x='std', y='implied', text='ticker', size='sharpe',
+        error_y='historical-', error_y_minus='historical+'
+        )
     for s in scatter.data:
         fig.add_trace(s)
     fig.update_traces(textposition='top center')
