@@ -176,7 +176,9 @@ def update_logreturns_ridge_plot(logreturns):
     df = pd.DataFrame(logreturns).set_index('Date')
     fig = px.violin(df.melt(), x='value', y='variable',
         labels={'value': '', 'variable': ''})
-    fig.update_traces(orientation='h', side='negative', width=3, points=False)
+    fig.update_traces(orientation='h', side='negative', width=3, points=False,
+        meanline_visible=True)
+    fig.update_traces()
     fig.update_yaxes(autorange="reversed")
     return fig
 
