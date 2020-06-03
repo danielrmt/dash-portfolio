@@ -16,6 +16,7 @@ import plotly.io as pio
 import plotly.figure_factory as ff
 
 from data_funcs import assets_df, get_quotes, bcb_sgs
+from fin_funcs import MeanVariancePortfolio
 
 
 #
@@ -98,6 +99,10 @@ tabs = dbc.Tabs([
         dcc.Graph('covmatrix_plot', style=plot_style)
     ], label='Covariância'),
     #
+    dbc.Tab([
+        html.H4('Fronteira eficiente de portfolios'),
+        dcc.Graph('frontier_plot', style=plot_style)
+    ], label='Fronteira')
 ])
 
 #
@@ -207,6 +212,27 @@ def update_covmatrix_plot(covmatrix):
     fig.update_yaxes(autorange="reversed")
     return fig
 
+
+@app.callback(
+    Output('frontier_plot', 'figure'),
+    [Input('covmatrix_data', 'data'),
+     Input('logreturns_data', 'data')]
+)
+def update_frontier_plot(covmatrix, logreturns):
+    logreturns = pd.DataFrame(logreturns).set_index('Date')
+    covmatrix = pd.DataFrame(covmatrix).set_index('index')
+    historical_frontier = MeanVariancePortfolio(logreturns.mean(), covmatrix)
+
+    ativos = logreturns.agg(['mean', 'std']).T.reset_index()
+    
+    fig = px.scatter(ativos, x='std', y='mean', text='index',
+        labels={'std': 'desvio-padrão', 'mean': 'retorno'})
+    fig.update_traces(textposition='top center')
+
+    fig.add_trace(
+        px.line(historical_frontier.frontier(), x='sigma', y='mu').data[0]
+    )
+    return fig
 
 #
 if __name__ == "__main__":
