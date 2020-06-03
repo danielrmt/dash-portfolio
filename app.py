@@ -15,7 +15,7 @@ import plotly.express as px
 import plotly.io as pio
 import plotly.figure_factory as ff
 
-from data_funcs import assets_df, get_quotes
+from data_funcs import assets_df, get_quotes, bcb_sgs
 
 
 #
@@ -35,6 +35,9 @@ plot_style = {'height': '80vh'}
 assets = assets_df('IBRA')
 is_main_ticker = assets.groupby('base_ticker')['part'].max()
 selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:12]
+
+cdi = bcb_sgs('01/01/2010', '31/12/2020', CDI=12)
+cdi['CDI'] = np.log(1 + cdi['CDI']/100)
 
 #
 app = dash.Dash(
@@ -81,17 +84,17 @@ assets_modal = dbc.Modal([
 #
 tabs = dbc.Tabs([
     dbc.Tab([
-        html.H4('Log-Retornos mensais'),
+        html.H4('Log-Retornos excedentes mensais'),
         dcc.Graph('logreturns_plot', style=plot_style)
     ], label='Retornos'),
     #
     dbc.Tab([
-        html.H4('Distribuição dos retornos'),
+        html.H4('Distribuição dos retornos excedentes mensais'),
         dcc.Graph('logreturns_ridge_plot', style=plot_style)
     ], label='Distribuição'),
     #
     dbc.Tab([
-        html.H4('Matriz de Covariância'),
+        html.H4('Matriz de Covariância dos retornos excedentes mensais'),
         dcc.Graph('covmatrix_plot', style=plot_style)
     ], label='Covariância'),
     #
@@ -146,8 +149,14 @@ def update_data(assets_table, selected_rows):
         .resample('MS')
         .last()
         .diff()
-        .reset_index()
     )
+    m_cdi = cdi.resample('MS').sum()
+    m_cdi = logreturns.merge(m_cdi, left_index=True, right_index=True)['CDI']
+
+    for t in tickers:
+        logreturns[t] = logreturns[t] - m_cdi
+
+    logreturns = logreturns.reset_index()
     
     covmatrix = logreturns.cov().reset_index()
     return prices.to_dict('records'), \
