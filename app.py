@@ -264,6 +264,7 @@ def update_frontier_plot(logreturns, assets, fronteira):
         logreturns.agg(['mean', 'std']).T,
         left_on='ticker', right_index=True
     )
+    ativos['sharpe'] = ativos['implied'] / ativos['std']
 
     ativos = ativos.rename(columns={'mean': 'historical'})
 
@@ -278,7 +279,7 @@ def update_frontier_plot(logreturns, assets, fronteira):
         .sort_values('variable')
     )
     scatter = px.scatter(
-        ativos, x='std', y='implied', text='ticker')
+        ativos, x='std', y='implied', text='ticker', size='sharpe')
     for s in scatter.data:
         fig.add_trace(s)
     fig.update_traces(textposition='top center')
