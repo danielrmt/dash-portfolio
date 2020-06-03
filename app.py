@@ -200,7 +200,7 @@ def update_covmatrix_plot(covmatrix):
     df = pd.DataFrame(covmatrix).set_index('index')
     cols = df.columns.values.tolist()
     z = df.values.tolist()
-    ztext = np.round(z, 5)
+    ztext = np.round(z, 3)
     fig = ff.create_annotated_heatmap(
         z, x=cols, y=cols, annotation_text=ztext, colorscale='Viridis'
     )
