@@ -13,7 +13,7 @@ class MeanVariancePortfolio:
     def portfolio_covariance(self, weights):
         returnweights.T @ self.covariance_matrix @ weights
 
-    def frontier(self, min=0, max=.1, step=.001):
+    def frontier(self, min=0, max=.05, step=.0001):
         sig_inv = np.linalg.inv(self.covariance_matrix)
         ones = np.repeat(1, self.expected_returns.shape)
         A = ones.T @ sig_inv @ ones

@@ -140,13 +140,15 @@ def toggle_search_modal(n1, n2, is_open):
 @app.callback(
     [Output('prices_data', 'data'),
      Output('logreturns_data', 'data'),
-     Output('covmatrix_data', 'data')],
+     Output('covmatrix_data', 'data'),
+     Output('assets_data', 'data')],
     [Input('assets_table', 'data'),
      Input('assets_table', 'selected_rows')]
 )
 def update_data(assets_table, selected_rows):
     df = pd.DataFrame(assets_table)
     assets = df[df.index.isin(selected_rows)][['ticker', 'part']]
+    assets['part'] = assets['part'] / assets['part'].sum()
     tickers = assets['ticker'].values
     prices = get_quotes(tickers)
     logreturns = (
@@ -162,11 +164,14 @@ def update_data(assets_table, selected_rows):
         logreturns[t] = logreturns[t] - m_cdi
 
     logreturns = logreturns.reset_index()
-    
-    covmatrix = logreturns.cov().reset_index()
+    covmatrix = logreturns.cov()
+
+    assets['implied'] = covmatrix.values @ assets['part'].values
+
     return prices.to_dict('records'), \
         logreturns.to_dict('records'), \
-        covmatrix.to_dict('records')
+        covmatrix.reset_index().to_dict('records'), \
+        assets.to_dict('records')
 
 
 @app.callback(
@@ -216,22 +221,43 @@ def update_covmatrix_plot(covmatrix):
 @app.callback(
     Output('frontier_plot', 'figure'),
     [Input('covmatrix_data', 'data'),
-     Input('logreturns_data', 'data')]
+     Input('logreturns_data', 'data'),
+     Input('assets_data', 'data')]
 )
-def update_frontier_plot(covmatrix, logreturns):
+def update_frontier_plot(covmatrix, logreturns, assets):
+    assets = pd.DataFrame(assets)
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     covmatrix = pd.DataFrame(covmatrix).set_index('index')
-    historical_frontier = MeanVariancePortfolio(logreturns.mean(), covmatrix)
 
-    ativos = logreturns.agg(['mean', 'std']).T.reset_index()
-    
-    fig = px.scatter(ativos, x='std', y='mean', text='index',
-        labels={'std': 'desvio-padrão', 'mean': 'retorno'})
+    ativos = assets.merge(
+        logreturns.agg(['mean', 'std']).T,
+        left_on='ticker', right_index=True
+    )
+
+    ativos = ativos.rename(columns={'mean': 'historical'})
+
+    fronteira = (
+        MeanVariancePortfolio(ativos['implied'], covmatrix)
+        .frontier(max=ativos['implied'].max() * 1.5)
+        .sort_values(['mu'])
+    )
+
+    fig = px.line(
+        fronteira, x='sigma', y='mu',
+        labels={'sigma': 'volatilidade', 'mu': 'retorno'}
+    )
+
+    df = (
+        ativos[['ticker', 'std', 'historical', 'implied']]
+        .melt(['ticker', 'std'])
+        .sort_values('variable')
+    )
+    scatter = px.scatter(
+        ativos, x='std', y='implied', text='ticker')
+    for s in scatter.data:
+        fig.add_trace(s)
     fig.update_traces(textposition='top center')
 
-    fig.add_trace(
-        px.line(historical_frontier.frontier(), x='sigma', y='mu').data[0]
-    )
     return fig
 
 #
