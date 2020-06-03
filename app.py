@@ -34,7 +34,7 @@ plot_style = {'height': '80vh'}
 #
 assets = assets_df('IBRA')
 is_main_ticker = assets.groupby('base_ticker')['part'].max()
-selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:10]
+selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:12]
 
 #
 app = dash.Dash(
@@ -81,7 +81,7 @@ assets_modal = dbc.Modal([
 #
 tabs = dbc.Tabs([
     dbc.Tab([
-        html.H4('Log-Retornos'),
+        html.H4('Log-Retornos mensais'),
         dcc.Graph('logreturns_plot', style=plot_style)
     ], label='Retornos'),
     #
@@ -161,9 +161,10 @@ def update_data(assets_table, selected_rows):
 )
 def update_logreturns_plot(logreturns):
     df = pd.DataFrame(logreturns).melt('Date').sort_values('Date')
-    fig = px.line(df, x='Date', y='value', facet_row='variable',
-        labels={'Date': '', 'value': ''})
-    fig.update_yaxes(matches=None)
+    fig = px.line(df, x='Date', y='value',
+        facet_col='variable', facet_col_wrap=3,
+        labels={'Date': '', 'value': '', 'variable': ''})
+    fig.update_yaxes(matches=None, showticklabels=False)
     return fig
 
 
