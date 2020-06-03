@@ -108,7 +108,7 @@ tabs = dbc.Tabs([
 #
 stores = html.Div([
     dcc.Store(id=f"{s}_data")
-    for s in['assets', 'prices', 'logreturns', 'covmatrix']
+    for s in['assets', 'prices', 'logreturns', 'covmatrix', 'frontier']
 ])
 
 
@@ -217,14 +217,13 @@ def update_covmatrix_plot(covmatrix):
     fig.update_yaxes(autorange="reversed")
     return fig
 
-
 @app.callback(
-    Output('frontier_plot', 'figure'),
+    Output('frontier_data', 'data'),
     [Input('covmatrix_data', 'data'),
      Input('logreturns_data', 'data'),
      Input('assets_data', 'data')]
 )
-def update_frontier_plot(covmatrix, logreturns, assets):
+def update_frontier_data(covmatrix, logreturns, assets):
     assets = pd.DataFrame(assets)
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     covmatrix = pd.DataFrame(covmatrix).set_index('index')
@@ -237,10 +236,31 @@ def update_frontier_plot(covmatrix, logreturns, assets):
     ativos = ativos.rename(columns={'mean': 'historical'})
 
     fronteira = (
-        MeanVariancePortfolio(ativos['implied'], covmatrix)
+        MeanVariancePortfolio(ativos['implied'], covmatrix, ativos['ticker'])
         .frontier(max=ativos['implied'].max() * 1.5)
         .sort_values(['mu'])
     )
+    return fronteira.to_dict('records')
+
+
+@app.callback(
+    Output('frontier_plot', 'figure'),
+    [Input('logreturns_data', 'data'),
+     Input('assets_data', 'data'),
+     Input('frontier_data', 'data')]
+)
+def update_frontier_plot(logreturns, assets, fronteira):
+    assets = pd.DataFrame(assets)
+    logreturns = pd.DataFrame(logreturns).set_index('Date')
+    fronteira = pd.DataFrame(fronteira)
+
+
+    ativos = assets.merge(
+        logreturns.agg(['mean', 'std']).T,
+        left_on='ticker', right_index=True
+    )
+
+    ativos = ativos.rename(columns={'mean': 'historical'})
 
     fig = px.line(
         fronteira, x='sigma', y='mu',
