@@ -102,7 +102,12 @@ tabs = dbc.Tabs([
     dbc.Tab([
         html.H4('Fronteira eficiente de portfolios'),
         dcc.Graph('frontier_plot', style=plot_style)
-    ], label='Fronteira')
+    ], label='Fronteira'),
+    #
+    dbc.Tab([
+        html.H4('Composição das carteiras da fronteira'),
+        dcc.Graph('weights_plot', style=plot_style)
+    ], label='Composição')
 ])
 
 #
@@ -278,6 +283,20 @@ def update_frontier_plot(logreturns, assets, fronteira):
         fig.add_trace(s)
     fig.update_traces(textposition='top center')
 
+    return fig
+
+
+@app.callback(
+    Output('weights_plot', 'figure'),
+    [Input('frontier_data', 'data')]
+)
+def update_weights_plot(fronteira):
+    df = (
+        pd.DataFrame(fronteira)
+        .drop(columns=['sigma','lambda','gamma'])
+        .melt('mu')
+    )
+    fig = px.bar(df, x='mu', y='value', color='variable')
     return fig
 
 #
