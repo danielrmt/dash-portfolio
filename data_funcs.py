@@ -85,3 +85,20 @@ def get_quotes(tickers):
         .set_index('Date')
         for t in tickers
     ], axis=1).reset_index()
+
+
+def bcb_sgs(beg_date, end_date, **kwargs):
+    '''
+    beg_date, end_date: string
+    **kwargs: str=int
+    '''
+    return pd.concat([
+        pd.read_json(f"http://api.bcb.gov.br/dados/serie/bcdata.sgs.{v}" +
+                     f"/dados?formato=json&dataInicial={beg_date}&" +
+                     f"dataFinal={end_date}",
+                     convert_dates=False)
+        .assign(data=lambda x: pd.to_datetime(x.data, dayfirst=True))
+        .rename(columns={'valor': k, 'data': 'Date'})
+        .set_index('Date')
+        for k, v in kwargs.items()
+    ], axis=1)
