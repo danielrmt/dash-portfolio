@@ -245,7 +245,7 @@ def update_logreturns_ridge_plot(logreturns):
         labels={'value': '', 'variable': ''})
     fig.update_traces(orientation='h', side='negative', width=3, points=False,
         meanline_visible=True)
-    fig.update_traces()
+    fig.update_layout(xaxis_tickformat='.1%')
     fig.update_yaxes(autorange="reversed")
     return fig
 
@@ -312,6 +312,7 @@ def update_frontier_plot(logreturns, assets, fronteira, method):
         fronteira, x='sigma', y='mu',
         labels={'sigma': 'volatilidade', 'mu': 'retorno'}
     )
+    fig.update_layout(yaxis_tickformat='.1%', xaxis_tickformat='.1%')
 
     tan_port = fronteira[fronteira['tangent']]
     fig.add_shape(
@@ -364,6 +365,7 @@ def update_weights_plot(fronteira, assets, plot_click):
         df.melt('ticker'), x='value', y='ticker', color='variable',
         labels={'value': '', 'ticker': ''}
     )
+    fig.update_layout(xaxis_tickformat='%')
 
     return fig
 
