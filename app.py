@@ -314,7 +314,7 @@ def update_frontier_plot(logreturns, assets, fronteira, method):
         labels={'sigma': 'volatilidade', 'mu': 'retorno'}
     )
 
-    ativos['sharpe_rescaled'] = ativos['sharpe'] - ativos['sharpe'].min()
+    ativos['sharpe_rescaled'] = ativos['sharpe'] - ativos['sharpe'].min()+.01
 
     scatter = px.scatter(
         ativos, x='std', y=method, text='ticker', size='sharpe_rescaled'
