@@ -109,6 +109,13 @@ tabs = dbc.Tabs([
     #
     dbc.Tab([
         html.H4('Fronteira eficiente de portfolios'),
+        dbc.RadioItems(id='expected_method', value='implied', inline=True,
+            options=[
+                {'label': 'Implícito no mercado', 'value': 'implied'},
+                {'label': 'Média histórica', 'value': 'mean'},
+                {'label': 'Mediana histórica', 'value': 'median'}
+            ]
+        ),
         dbc.Row([
             dbc.Col([
                 dcc.Graph('frontier_plot', style=plot_style)
@@ -262,23 +269,22 @@ def update_covmatrix_plot(covmatrix):
     Output('frontier_data', 'data'),
     [Input('covmatrix_data', 'data'),
      Input('logreturns_data', 'data'),
-     Input('assets_data', 'data')]
+     Input('assets_data', 'data'),
+     Input('expected_method', 'value')]
 )
-def update_frontier_data(covmatrix, logreturns, assets):
+def update_frontier_data(covmatrix, logreturns, assets, method):
     assets = pd.DataFrame(assets)
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     covmatrix = pd.DataFrame(covmatrix).set_index('index')
 
     ativos = assets.merge(
-        logreturns.agg(['mean', 'std']).T,
+        logreturns.agg(['mean', 'median', 'std']).T,
         left_on='ticker', right_index=True
     )
 
-    ativos = ativos.rename(columns={'mean': 'historical'})
-
     fronteira = (
-        MeanVariancePortfolio(ativos['implied'], covmatrix, ativos['ticker'])
-        .frontier(max=ativos['implied'].max() * 1.5)
+        MeanVariancePortfolio(ativos[method], covmatrix, ativos['ticker'])
+        .frontier(max=ativos[method].max() * 1.5)
         .sort_values(['mu'])
     )
     return fronteira.to_dict('records')
@@ -288,32 +294,31 @@ def update_frontier_data(covmatrix, logreturns, assets):
     Output('frontier_plot', 'figure'),
     [Input('logreturns_data', 'data'),
      Input('assets_data', 'data'),
-     Input('frontier_data', 'data')]
+     Input('frontier_data', 'data'),
+     Input('expected_method', 'value')]
 )
-def update_frontier_plot(logreturns, assets, fronteira):
+def update_frontier_plot(logreturns, assets, fronteira, method):
     assets = pd.DataFrame(assets)
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     fronteira = pd.DataFrame(fronteira)
 
 
     ativos = assets.merge(
-        logreturns.agg(['mean', 'std']).T,
+        logreturns.agg(['mean', 'median', 'std']).T,
         left_on='ticker', right_index=True
     )
-    ativos['sharpe'] = ativos['implied'] / ativos['std']
-    ativos['error'] = ativos['implied'] - ativos['mean']
-    ativos['historical+'] = np.where(ativos['error'] > 0, ativos['error'], 0)
-    ativos['historical-'] = np.where(ativos['error'] < 0, -ativos['error'], 0)
-
+    ativos['sharpe'] = ativos[method] / ativos['std']
+    
     fig = px.line(
         fronteira, x='sigma', y='mu',
         labels={'sigma': 'volatilidade', 'mu': 'retorno'}
     )
 
+    ativos['sharpe_rescaled'] = ativos['sharpe'] - ativos['sharpe'].min()
+
     scatter = px.scatter(
-        ativos, x='std', y='implied', text='ticker', size='sharpe',
-        error_y='historical-', error_y_minus='historical+'
-        )
+        ativos, x='std', y=method, text='ticker', size='sharpe_rescaled'
+    )
     for s in scatter.data:
         fig.add_trace(s)
     fig.update_traces(textposition='top center')
