@@ -302,7 +302,6 @@ def update_frontier_plot(logreturns, assets, fronteira, method):
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     fronteira = pd.DataFrame(fronteira)
 
-
     ativos = assets.merge(
         logreturns.agg(['mean', 'median', 'std']).T,
         left_on='ticker', right_index=True
@@ -312,6 +311,14 @@ def update_frontier_plot(logreturns, assets, fronteira, method):
     fig = px.line(
         fronteira, x='sigma', y='mu',
         labels={'sigma': 'volatilidade', 'mu': 'retorno'}
+    )
+
+    tan_port = fronteira[fronteira['tangent']]
+    fig.add_shape(
+        type='line', xref="x", yref="y",
+        x0=0, y0=0,
+        x1=tan_port['sigma'].values[0], y1=tan_port['mu'].values[0],
+        line={'color': 'black', 'width': 1}
     )
 
     ativos['sharpe_rescaled'] = ativos['sharpe'] - ativos['sharpe'].min()+.01
