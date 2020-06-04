@@ -101,13 +101,16 @@ tabs = dbc.Tabs([
     #
     dbc.Tab([
         html.H4('Fronteira eficiente de portfolios'),
-        dcc.Graph('frontier_plot', style=plot_style)
-    ], label='Fronteira'),
-    #
-    dbc.Tab([
-        html.H4('Composição das carteiras da fronteira'),
-        dcc.Graph('weights_plot', style=plot_style)
-    ], label='Composição')
+        dbc.Row([
+            dbc.Col([
+                dcc.Graph('frontier_plot', style=plot_style)
+            ], width=8),
+            dbc.Col([
+                dcc.Graph('weights_plot', style=plot_style)
+            ], width=4)
+        ])
+        
+    ], label='Fronteira')
 ])
 
 #
@@ -287,15 +290,36 @@ def update_frontier_plot(logreturns, assets, fronteira):
 
 @app.callback(
     Output('weights_plot', 'figure'),
-    [Input('frontier_data', 'data')]
+    [Input('frontier_data', 'data'),
+     Input('assets_data', 'data'),
+     Input('frontier_plot', 'hoverData')]
 )
-def update_weights_plot(fronteira):
-    df = (
-        pd.DataFrame(fronteira)
-        .drop(columns=['sigma','lambda','gamma'])
-        .melt('mu')
+def update_weights_plot(fronteira, assets, plot_click):
+    assets = pd.DataFrame(assets)
+    tickers = assets['ticker']
+    fronteira = pd.DataFrame(fronteira)
+
+    df = pd.merge(
+        fronteira[fronteira['minimal_var']][tickers].melt(
+            value_name='min var', var_name='ticker'),
+        fronteira[fronteira['tangent']][tickers].melt(
+            value_name='max sharpe', var_name='ticker')
     )
-    fig = px.bar(df, x='mu', y='value', color='variable')
+
+    if plot_click is not None:
+        idx = plot_click['points'][0]['pointNumber']
+        mu = fronteira['mu'][idx]
+        if np.sum(fronteira['mu'] == mu) >= 0:
+            df = pd.merge(
+                df, fronteira[fronteira['mu'] == mu][tickers].melt(
+                    value_name='seleção', var_name='ticker')
+            )
+
+    fig = px.scatter(
+        df.melt('ticker'), x='value', y='ticker', color='variable',
+        labels={'value': '', 'ticker': ''}
+    )
+
     return fig
 
 #

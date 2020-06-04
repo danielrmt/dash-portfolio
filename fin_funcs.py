@@ -21,11 +21,24 @@ class MeanVariancePortfolio:
         B = ones.T @ sig_inv @ self.expected_returns
         C = self.expected_returns.T @ sig_inv @ self.expected_returns
         D = A * C - B ** 2
-        df = pd.DataFrame(np.arange(min, max, step), columns=['mu'])
-        df['sigma'] = np.sqrt((A * df['mu']**2 - 2 * B * df['mu'] + C) / D)
 
         w_min = sig_inv @ ones / A
         w_tan = sig_inv @ self.expected_returns / B
+        mu_min = self.portfolio_return(w_min)
+        mu_tan = self.portfolio_return(w_tan)
+        
+        mus = np.arange(min, max, step)
+        if mu_min not in mus:
+            mus = np.append(mus, mu_min)
+        if mu_tan not in mus:
+            mus = np.append(mus, mu_tan)
+        mus = np.sort(mus)
+
+        df = pd.DataFrame(mus, columns=['mu'])
+        df['minimal_var'] = df['mu'] == mu_min
+        df['tangent'] = df['mu'] == mu_tan
+        df['sigma'] = np.sqrt((A * df['mu']**2 - 2 * B * df['mu'] + C) / D)
+        df['sharpe'] = df['mu'] / df['sigma']
         
         df['lambda'] = (C - df['mu'] * B) / D
         df['gamma'] = (df['mu'] * A - B) / D
