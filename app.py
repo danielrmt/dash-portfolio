@@ -15,6 +15,8 @@ import plotly.express as px
 import plotly.io as pio
 import plotly.figure_factory as ff
 
+from sklearn.covariance import LedoitWolf, oas
+
 from data_funcs import assets_df, get_quotes, bcb_sgs
 from fin_funcs import MeanVariancePortfolio
 
@@ -96,6 +98,12 @@ tabs = dbc.Tabs([
     #
     dbc.Tab([
         html.H4('Matriz de Covariância dos retornos excedentes mensais'),
+        dbc.RadioItems(id='cov_method', value='cov', inline=True,
+            options=[
+                {'label': 'Padrão', 'value': 'cov'},
+                {'label': 'Ledoit-Wolf Shrinkage', 'value': 'ledoit-wolf'},
+                {'label': 'Oracle Approximating Shrinkage', 'value': 'oas'}
+            ]),
         dcc.Graph('covmatrix_plot', style=plot_style)
     ], label='Covariância'),
     #
@@ -147,9 +155,7 @@ def toggle_search_modal(n1, n2, is_open):
 
 @app.callback(
     [Output('prices_data', 'data'),
-     Output('logreturns_data', 'data'),
-     Output('covmatrix_data', 'data'),
-     Output('assets_data', 'data')],
+     Output('logreturns_data', 'data')],
     [Input('assets_table', 'data'),
      Input('assets_table', 'selected_rows')]
 )
@@ -172,13 +178,40 @@ def update_data(assets_table, selected_rows):
         logreturns[t] = logreturns[t] - m_cdi
 
     logreturns = logreturns.reset_index()
-    covmatrix = logreturns.cov()
+
+    return prices.to_dict('records'), \
+        logreturns.to_dict('records')
+
+
+@app.callback(
+    [Output('covmatrix_data', 'data'),
+     Output('assets_data', 'data')],
+    [Input('logreturns_data', 'data'),
+     Input('assets_table', 'data'),
+     Input('assets_table', 'selected_rows'),
+     Input('cov_method', 'value')]
+)
+def update_covmatrix(logreturns, assets_table, selected_rows, method):
+    logreturns = pd.DataFrame(logreturns).set_index('Date')
+    df = pd.DataFrame(assets_table)
+    assets = df[df.index.isin(selected_rows)][['ticker', 'part']]
+    assets['part'] = assets['part'] / assets['part'].sum()
+
+    tickers = assets['ticker'].values
+    if method == 'ledoit-wolf':
+        covmatrix = LedoitWolf().fit(logreturns.dropna()).covariance_
+        covmatrix = pd.DataFrame(covmatrix, index=tickers,
+            columns=tickers)
+    elif method == 'oas':
+        covmatrix, x = oas(logreturns.dropna())
+        covmatrix = pd.DataFrame(covmatrix, index=tickers,
+            columns=tickers)
+    else:
+        covmatrix = logreturns.cov()
 
     assets['implied'] = covmatrix.values @ assets['part'].values
 
-    return prices.to_dict('records'), \
-        logreturns.to_dict('records'), \
-        covmatrix.reset_index().to_dict('records'), \
+    return covmatrix.reset_index().to_dict('records'), \
         assets.to_dict('records')
 
 
