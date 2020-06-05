@@ -268,6 +268,7 @@ def update_capm_plot(logreturns):
             'value': 'Retorno excedente', 
             'IBOV': 'Retorno excedente IBOV'})
     fig.update_yaxes(matches=None, showticklabels=False)
+    fig.update_xaxes(showticklabels=False)
 
     results = px.get_trendline_results(fig)
     results['beta'] = results['px_fit_results'].apply(lambda x: x.params[1])
