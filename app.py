@@ -126,7 +126,7 @@ tabs = dbc.Tabs([
         html.H4('Fronteira eficiente de portfolios'),
         dbc.RadioItems(id='expected_method', value='implied', inline=True,
             options=[
-                {'label': 'Implícito no mercado', 'value': 'implied'},
+                {'label': 'Implícito no índice', 'value': 'implied'},
                 {'label': 'CAPM', 'value': 'capm'},
                 {'label': 'Média histórica', 'value': 'mean'},
                 {'label': 'Mediana histórica', 'value': 'median'}
