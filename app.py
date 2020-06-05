@@ -41,6 +41,16 @@ selected_assets = assets[assets['part'].isin(is_main_ticker)].index[:12]
 
 cdi = bcb_sgs('01/01/2010', '31/12/2020', CDI=12)
 cdi['CDI'] = np.log(1 + cdi['CDI']/100)
+ibov = get_quotes(['IBOV']).set_index('Date')
+r_ibov = (
+    np.log(ibov)
+    .diff().dropna()
+    .merge(cdi, left_index=True, right_index=True)
+    .assign(IBOV = lambda x: x['IBOV'] - x['CDI'])
+    .drop(columns=['CDI'])
+)
+
+
 
 #
 app = dash.Dash(
@@ -95,6 +105,11 @@ tabs = dbc.Tabs([
         html.H4('Distribuição dos retornos excedentes mensais'),
         dcc.Graph('logreturns_ridge_plot', style=plot_style)
     ], label='Distribuição'),
+    #
+    dbc.Tab([
+        html.H4('Capital Asset Pricing Model'),
+        dcc.Graph('capm_plot', style=plot_style)
+    ], label='CAPM'),
     #
     dbc.Tab([
         html.H4('Matriz de Covariância dos retornos excedentes mensais'),
@@ -231,6 +246,25 @@ def update_logreturns_plot(logreturns):
     fig = px.line(df, x='Date', y='value',
         facet_col='variable', facet_col_wrap=3,
         labels={'Date': '', 'value': '', 'variable': ''})
+    fig.update_yaxes(matches=None, showticklabels=False)
+    return fig
+
+
+@app.callback(
+    Output('capm_plot', 'figure'),
+    [Input('logreturns_data', 'data')]
+)
+def update_capm_plot(logreturns):
+    df = pd.merge(
+        pd.DataFrame(logreturns)
+        .assign(Date=lambda x: pd.to_datetime(x['Date'])),
+        r_ibov.resample('MS').sum().reset_index()
+    ).set_index('Date').melt('IBOV')
+    fig = px.scatter(df, x='IBOV', y='value', trendline="ols",
+        facet_col='variable', facet_col_wrap=4,
+        labels={'variable': '',
+            'value': 'Retorno excedente', 
+            'IBOV': 'Retorno excedente IBOV'})
     fig.update_yaxes(matches=None, showticklabels=False)
     return fig
 
