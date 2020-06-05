@@ -266,7 +266,7 @@ def update_capm_plot(logreturns):
         r_ibov.resample('MS').sum().reset_index()
     ).set_index('Date').melt('IBOV')
     fig = px.scatter(df, x='IBOV', y='value', trendline="ols",
-        facet_col='variable', facet_col_wrap=4,
+        facet_col='variable', facet_col_wrap=4, opacity=.5,
         labels={'value': 'Retorno excedente',
                 'IBOV': 'Retorno excedente IBOV'})
     fig.update_yaxes(matches=None, showticklabels=False)
