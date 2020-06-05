@@ -248,8 +248,9 @@ def update_logreturns_plot(logreturns):
     df = pd.DataFrame(logreturns).melt('Date').sort_values('Date')
     fig = px.line(df, x='Date', y='value',
         facet_col='variable', facet_col_wrap=3,
-        labels={'Date': '', 'value': '', 'variable': ''})
+        labels={'Date': '', 'value': ''})
     fig.update_yaxes(matches=None, showticklabels=False)
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     return fig
 
 
@@ -266,17 +267,18 @@ def update_capm_plot(logreturns):
     ).set_index('Date').melt('IBOV')
     fig = px.scatter(df, x='IBOV', y='value', trendline="ols",
         facet_col='variable', facet_col_wrap=4,
-        labels={'variable': '',
-            'value': 'Retorno excedente', 
-            'IBOV': 'Retorno excedente IBOV'})
+        labels={'value': 'Retorno excedente',
+                'IBOV': 'Retorno excedente IBOV'})
     fig.update_yaxes(matches=None, showticklabels=False)
     fig.update_xaxes(showticklabels=False)
 
     results = px.get_trendline_results(fig)
     results['beta'] = results['px_fit_results'].apply(lambda x: x.params[1])
     results['alpha'] = results['px_fit_results'].apply(lambda x: x.params[0])
-    results = results.reset_index().rename(columns={'': 'ticker'})
+    results = results.reset_index().rename(columns={'variable': 'ticker'})
     results = results[['ticker', 'beta', 'alpha']]
+
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
     return fig, results.to_dict('records')
 
