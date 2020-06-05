@@ -298,7 +298,8 @@ def update_logreturns_ridge_plot(logreturns):
     fig.update_traces(orientation='h', side='negative', width=3, points=False,
         meanline_visible=True)
     fig.update_layout(xaxis_tickformat='.1%')
-    fig.update_yaxes(autorange="reversed")
+    fig.update_yaxes(autorange="reversed",
+        showgrid=True, gridwidth=1, gridcolor='#b0b0b0')
     return fig
 
 
