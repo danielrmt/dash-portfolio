@@ -400,7 +400,7 @@ def update_frontier_plot(logreturns, assets, capm, fronteira, covmatrix, method)
     Output('weights_plot', 'figure'),
     [Input('frontier_data', 'data'),
      Input('assets_data', 'data'),
-     Input('frontier_plot', 'hoverData')]
+     Input('frontier_plot', 'clickData')]
 )
 def update_weights_plot(fronteira, assets, plot_click):
     assets = pd.DataFrame(assets)
@@ -414,7 +414,7 @@ def update_weights_plot(fronteira, assets, plot_click):
             value_name='max sharpe', var_name='ticker')
     )
 
-    if plot_click is not None:
+    if (plot_click is not None) and (plot_click['points'][0]['curveNumber'] == 0):
         idx = plot_click['points'][0]['pointNumber']
         mu = fronteira['mu'][idx]
         if np.sum(fronteira['mu'] == mu) >= 0:
