@@ -334,7 +334,7 @@ def update_frontier_data(covmatrix, logreturns, assets, capm, method):
     assets = pd.DataFrame(assets).merge(capm[['ticker', 'capm']])
 
     ativos = assets.merge(
-        logreturns.agg(['mean', 'median', 'std']).T,
+        logreturns.agg(['mean', 'median']).T,
         left_on='ticker', right_index=True
     )
 
@@ -352,19 +352,22 @@ def update_frontier_data(covmatrix, logreturns, assets, capm, method):
      Input('assets_data', 'data'),
      Input('capm_data', 'data'),
      Input('frontier_data', 'data'),
+     Input('covmatrix_data', 'data'),
      Input('expected_method', 'value')]
 )
-def update_frontier_plot(logreturns, assets, capm, fronteira, method):
+def update_frontier_plot(logreturns, assets, capm, fronteira, covmatrix, method):
     logreturns = pd.DataFrame(logreturns).set_index('Date')
+    covmatrix = pd.DataFrame(covmatrix).set_index('index')
     capm = pd.DataFrame(capm)
     capm['capm'] = capm['beta'] * .06/12
     assets = pd.DataFrame(assets).merge(capm[['ticker', 'capm']])
     fronteira = pd.DataFrame(fronteira)
 
     ativos = assets.merge(
-        logreturns.agg(['mean', 'median', 'std']).T,
+        logreturns.agg(['mean', 'median']).T,
         left_on='ticker', right_index=True
     )
+    ativos['std'] = np.sqrt(np.diag(covmatrix))
     ativos['sharpe'] = ativos[method] / ativos['std']
     
     fig = px.line(
