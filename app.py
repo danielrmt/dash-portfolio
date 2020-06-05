@@ -232,7 +232,9 @@ def update_covmatrix(logreturns, assets_table, selected_rows, method):
     else:
         covmatrix = logreturns.cov()
 
-    assets['implied'] = covmatrix.values @ assets['part'].values
+    m_ibov = r_ibov.resample('MS').sum()
+    L = (.06 / 12) / (2. * m_ibov.std()[0]**2)
+    assets['implied'] = 2 * L * covmatrix.values @ assets['part'].values
 
     return covmatrix.reset_index().to_dict('records'), \
         assets.to_dict('records')
