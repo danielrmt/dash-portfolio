@@ -112,7 +112,7 @@ tabs = dbc.Tabs([
     ], label='CAPM'),
     #
     dbc.Tab([
-        html.H4('Matriz de Covariância dos retornos excedentes mensais'),
+        html.H4('Matriz da Raiz da Covariância dos retornos excedentes mensais'),
         dbc.RadioItems(id='cov_method', value='cov', inline=True,
             options=[
                 {'label': 'Padrão', 'value': 'cov'},
@@ -310,7 +310,7 @@ def update_logreturns_ridge_plot(logreturns):
 def update_covmatrix_plot(covmatrix):
     df = pd.DataFrame(covmatrix).set_index('index')
     cols = df.columns.values.tolist()
-    z = df.values.tolist()
+    z = np.sqrt(df).values.tolist()
     ztext = np.round(z, 3)
     fig = ff.create_annotated_heatmap(
         z, x=cols, y=cols, annotation_text=ztext, colorscale='Viridis'
