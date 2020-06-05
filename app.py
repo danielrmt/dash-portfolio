@@ -127,6 +127,7 @@ tabs = dbc.Tabs([
         dbc.RadioItems(id='expected_method', value='implied', inline=True,
             options=[
                 {'label': 'Implícito no mercado', 'value': 'implied'},
+                {'label': 'CAPM', 'value': 'capm'},
                 {'label': 'Média histórica', 'value': 'mean'},
                 {'label': 'Mediana histórica', 'value': 'median'}
             ]
@@ -146,7 +147,7 @@ tabs = dbc.Tabs([
 #
 stores = html.Div([
     dcc.Store(id=f"{s}_data")
-    for s in['assets', 'prices', 'logreturns', 'covmatrix', 'frontier']
+    for s in['assets', 'prices', 'logreturns', 'covmatrix', 'frontier', 'capm']
 ])
 
 
@@ -251,7 +252,8 @@ def update_logreturns_plot(logreturns):
 
 
 @app.callback(
-    Output('capm_plot', 'figure'),
+    [Output('capm_plot', 'figure'),
+     Output('capm_data', 'data')],
     [Input('logreturns_data', 'data')]
 )
 def update_capm_plot(logreturns):
@@ -266,7 +268,14 @@ def update_capm_plot(logreturns):
             'value': 'Retorno excedente', 
             'IBOV': 'Retorno excedente IBOV'})
     fig.update_yaxes(matches=None, showticklabels=False)
-    return fig
+
+    results = px.get_trendline_results(fig)
+    results['beta'] = results['px_fit_results'].apply(lambda x: x.params[1])
+    results['alpha'] = results['px_fit_results'].apply(lambda x: x.params[0])
+    results = results.reset_index().rename(columns={'': 'ticker'})
+    results = results[['ticker', 'beta', 'alpha']]
+
+    return fig, results.to_dict('records')
 
 
 @app.callback(
@@ -304,12 +313,15 @@ def update_covmatrix_plot(covmatrix):
     [Input('covmatrix_data', 'data'),
      Input('logreturns_data', 'data'),
      Input('assets_data', 'data'),
+     Input('capm_data', 'data'),
      Input('expected_method', 'value')]
 )
-def update_frontier_data(covmatrix, logreturns, assets, method):
-    assets = pd.DataFrame(assets)
+def update_frontier_data(covmatrix, logreturns, assets, capm, method):
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     covmatrix = pd.DataFrame(covmatrix).set_index('index')
+    capm = pd.DataFrame(capm)
+    capm['capm'] = capm['beta'] * .06/12
+    assets = pd.DataFrame(assets).merge(capm[['ticker', 'capm']])
 
     ativos = assets.merge(
         logreturns.agg(['mean', 'median', 'std']).T,
@@ -328,12 +340,15 @@ def update_frontier_data(covmatrix, logreturns, assets, method):
     Output('frontier_plot', 'figure'),
     [Input('logreturns_data', 'data'),
      Input('assets_data', 'data'),
+     Input('capm_data', 'data'),
      Input('frontier_data', 'data'),
      Input('expected_method', 'value')]
 )
-def update_frontier_plot(logreturns, assets, fronteira, method):
-    assets = pd.DataFrame(assets)
+def update_frontier_plot(logreturns, assets, capm, fronteira, method):
     logreturns = pd.DataFrame(logreturns).set_index('Date')
+    capm = pd.DataFrame(capm)
+    capm['capm'] = capm['beta'] * .06/12
+    assets = pd.DataFrame(assets).merge(capm[['ticker', 'capm']])
     fronteira = pd.DataFrame(fronteira)
 
     ativos = assets.merge(
