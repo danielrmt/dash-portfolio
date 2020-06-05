@@ -70,8 +70,12 @@ def assets_df(index_name='IBRA'):
 
 
 def get_quote(ticker):
+    if ticker in ['BVSP', 'IBOV']:
+        ticker2 = '^BVSP'
+    else:
+        ticker2 = f'{ticker}.SA'
     df = (
-        wb.DataReader(f'{ticker}.SA', start='2010-1-1', data_source='yahoo')
+        wb.DataReader(f'{ticker2}', start='2010-1-1', data_source='yahoo')
         .rename(columns={'Adj Close': ticker})
         .reset_index()
     )
