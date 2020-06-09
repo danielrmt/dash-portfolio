@@ -399,38 +399,26 @@ def update_frontier_plot(logreturns, assets, capm, fronteira, covmatrix, method)
 @app.callback(
     Output('weights_plot', 'figure'),
     [Input('frontier_data', 'data'),
-     Input('assets_data', 'data'),
-     Input('frontier_plot', 'clickData')]
+     Input('assets_data', 'data')]
 )
-def update_weights_plot(fronteira, assets, plot_click):
+def update_weights_plot(fronteira, assets):
     assets = pd.DataFrame(assets)
     tickers = assets['ticker']
     fronteira = pd.DataFrame(fronteira)
 
-    df = pd.merge(
-        fronteira[fronteira['minimal_var']][tickers].melt(
-            value_name='min var', var_name='ticker'),
-        fronteira[fronteira['tangent']][tickers].melt(
-            value_name='max sharpe', var_name='ticker')
-    )
-
-    if (plot_click is not None) and (plot_click['points'][0]['curveNumber'] == 0):
-        idx = plot_click['points'][0]['pointNumber']
-        mu = fronteira['mu'][idx]
-        if np.sum(fronteira['mu'] == mu) >= 0:
-            df = pd.merge(
-                df, fronteira[fronteira['mu'] == mu][tickers].melt(
-                    value_name='seleção', var_name='ticker')
-            )
-
-    df = df.melt('ticker')
-    df['text'] = round(df['value'] * 100, 1)
+    df = fronteira.melt(['mu', 'sigma'], tickers,
+        value_name='peso', var_name='ticker')
+    df['text'] = round(df['peso'] * 100, 1)
+    df['E(r)'] = round(df['mu'] * 100, 2).astype(str)+ \
+        ', dp(r)=' + round(df['sigma'] * 100, 2).astype(str)
     fig = px.scatter(
-        df, x='value', y='ticker', color='variable', text='text',
-        labels={'value': '', 'ticker': ''}
+        df, x='peso', y='ticker', text='text', #, color='variable'
+        animation_frame='E(r)',
+        labels={'peso': '', 'ticker': ''}
     )
+    fig["layout"].pop("updatemenus")
     fig.update_layout(xaxis_tickformat='%')
-    fig.update_traces(marker={'size': 12, 'opacity':.9}, textposition='top center')
+    fig.update_traces(marker={'size': 12, 'opacity': .9}, textposition='top center')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#b0b0b0')
 
     return fig
