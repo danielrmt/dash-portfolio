@@ -418,8 +418,10 @@ def update_weights_plot(fronteira, assets):
     )
     fig["layout"].pop("updatemenus")
     fig.update_layout(xaxis_tickformat='%')
-    fig.update_traces(marker={'size': 12, 'opacity': .9}, textposition='top center')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#b0b0b0')
+    fig.update_traces(marker={'size': 12, 'opacity': .9},
+        textposition='top center')
+    fig.update_yaxes(autorange="reversed",
+        showgrid=True, gridwidth=1,gridcolor='#b0b0b0')
 
     return fig
 
