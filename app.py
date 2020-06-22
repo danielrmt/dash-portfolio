@@ -157,6 +157,15 @@ app.layout = html.Div([
     html.Div([
         tabs,
     ], className='container-fluid'),
+    html.Footer([
+        html.Div([
+            'Este aplicativo tem objetivo exclusivamente educacional e ' + \
+            'todos os dados possuem caráter informativo. Não nos ' + \
+            'responsabilizamos pelas decisões e caminhos tomados tomados ' + \
+            'pelo usuário a partir da análise das informações aqui ' + \
+            'disponibilizadas.'
+        ], className='container')
+    ], className='footer text-muted'),
     assets_modal,
     stores
 ])
