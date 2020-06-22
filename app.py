@@ -250,7 +250,8 @@ def update_logreturns_plot(logreturns):
         facet_col='variable', facet_col_wrap=3,
         labels={'Date': '', 'value': ''})
     fig.update_yaxes(matches=None, showticklabels=False)
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.for_each_annotation(lambda a: a.update(
+        text='<b>' + a.text.split("=")[-1] + '</b>'))
     return fig
 
 
@@ -282,7 +283,8 @@ def update_capm_plot(logreturns):
     results = results.reset_index().rename(columns={'variable': 'ticker'})
     results = results[['ticker', 'beta', 'alpha']]
 
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.for_each_annotation(lambda a: a.update(
+        text='<b>' + a.text.split("=")[-1] + '</b>'))
 
     return fig, results.to_dict('records')
 
