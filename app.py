@@ -127,9 +127,10 @@ tabs = dbc.Tabs([
     #
     dbc.Tab([
         html.H4('Fronteira eficiente de portfolios'),
-        dbc.RadioItems(id='expected_method', value='implied', inline=True,
+        dbc.RadioItems(id='expected_method', value='rmktcap', inline=True,
             options=[
-                {'label': 'Implícito no índice', 'value': 'implied'},
+                {'label': 'Implícito no Market Cap', 'value': 'rmktcap'},
+                {'label': 'Implícito no índice', 'value': 'rindex'},
                 {'label': 'CAPM', 'value': 'capm'},
                 {'label': 'Média histórica', 'value': 'mean'},
                 {'label': 'Mediana histórica', 'value': 'median'}
@@ -229,8 +230,9 @@ def update_data(assets_table, selected_rows):
 def update_covmatrix(logreturns, assets_table, selected_rows, method):
     logreturns = pd.DataFrame(logreturns).set_index('Date')
     df = pd.DataFrame(assets_table)
-    assets = df[df.index.isin(selected_rows)][['ticker', 'part']]
+    assets = df[df.index.isin(selected_rows)][['ticker', 'part', 'mktcap']]
     assets['part'] = assets['part'] / assets['part'].sum()
+    assets['wmktcap'] = assets['mktcap'] / assets['mktcap'].sum()
 
     tickers = assets['ticker'].values
     if method == 'ledoit-wolf':
@@ -246,7 +248,8 @@ def update_covmatrix(logreturns, assets_table, selected_rows, method):
 
     m_ibov = r_ibov.resample('MS').sum()
     L = (.06 / 12) / (2. * m_ibov.std()[0]**2)
-    assets['implied'] = 2 * L * covmatrix.values @ assets['part'].values
+    assets['rindex'] = 2 * L * covmatrix.values @ assets['part'].values
+    assets['rmktcap'] = 2 * L * covmatrix.values @ assets['wmktcap'].values
 
     return covmatrix.reset_index().to_dict('records'), \
         assets.to_dict('records')
