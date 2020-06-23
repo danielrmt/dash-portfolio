@@ -63,10 +63,13 @@ def cache_data(fn, fun, *args, **kwargs):
 
 
 def assets_df(index_name='IBRA'):
+    mktcap = get_mktcap()
     sectors = cache_data('setores.csv', assets_sectors)
     assets = cache_data('ibra.csv', index_composition, index_name)
     assets['base_ticker'] = assets['ticker'].str[:4]
-    return assets.merge(sectors, on='base_ticker')
+    assets = assets.merge(mktcap, on="empresa")
+    assets = assets.merge(sectors, on='base_ticker')
+    return assets
 
 
 def get_quote(ticker):
@@ -89,6 +92,27 @@ def get_quotes(tickers):
         .set_index('Date')
         for t in tickers
     ], axis=1).reset_index()
+
+
+def get_mktcap():
+    url = "http://www.b3.com.br/pt_br/market-data-e-indices/" + \
+        "servicos-de-dados/market-data/consultas/mercado-a-vista/" + \
+            "valor-de-mercado-das-empresas-listadas/bolsa-de-valores/"
+    page = requests.get(url)
+    soup = BeautifulSoup(page.text, 'html.parser')
+    url = soup.find("a", string="Histórico diário").get('href')
+    url = "http://www.b3.com.br/" + url.replace('../', '')
+    df = (
+        pd.read_excel(url, skiprows=7, skipfooter=5)
+        .dropna(axis=1, how="all")
+        .rename(columns={"Empresa": "empresa", "R$ (Mil)": "mktcap"})
+        .assign(
+            mktcap=lambda x: x['mktcap'] / 1000,
+            empresa=lambda x: x['empresa'].str.strip()
+        )
+        [["empresa", "mktcap"]]
+    )
+    return df
 
 
 def bcb_sgs(beg_date, end_date, **kwargs):
