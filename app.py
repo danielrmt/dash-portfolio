@@ -94,21 +94,24 @@ assets_modal = dbc.Modal([
 ], id='assets_modal', size="xl", scrollable=True)
 
 
+def  spinner_graph(*args, **kwargs):
+    return dbc.Spinner(dcc.Graph(*args, **kwargs))
+
 #
 tabs = dbc.Tabs([
     dbc.Tab([
         html.H4('Log-Retornos excedentes mensais'),
-        dcc.Graph('logreturns_plot', style=plot_style)
+        spinner_graph('logreturns_plot', style=plot_style)
     ], label='Retornos'),
     #
     dbc.Tab([
         html.H4('Distribuição dos retornos excedentes mensais'),
-        dcc.Graph('logreturns_ridge_plot', style=plot_style)
+        spinner_graph('logreturns_ridge_plot', style=plot_style)
     ], label='Distribuição'),
     #
     dbc.Tab([
         html.H4('Capital Asset Pricing Model'),
-        dcc.Graph('capm_plot', style=plot_style)
+        spinner_graph('capm_plot', style=plot_style)
     ], label='CAPM'),
     #
     dbc.Tab([
@@ -119,7 +122,7 @@ tabs = dbc.Tabs([
                 {'label': 'Ledoit-Wolf Shrinkage', 'value': 'ledoit-wolf'},
                 {'label': 'Oracle Approximating Shrinkage', 'value': 'oas'}
             ]),
-        dcc.Graph('covmatrix_plot', style=plot_style)
+        spinner_graph('covmatrix_plot', style=plot_style)
     ], label='Covariância'),
     #
     dbc.Tab([
@@ -134,10 +137,10 @@ tabs = dbc.Tabs([
         ),
         dbc.Row([
             dbc.Col([
-                dcc.Graph('frontier_plot', style=plot_style)
+                spinner_graph('frontier_plot', style=plot_style)
             ], width=8),
             dbc.Col([
-                dcc.Graph('weights_plot', style=plot_style)
+                spinner_graph('weights_plot', style=plot_style)
             ], width=4)
         ])
         
