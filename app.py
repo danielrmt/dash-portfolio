@@ -431,7 +431,8 @@ def update_weights_plot(fronteira, assets):
     fig = px.scatter(
         df, x='peso', y='ticker', text='text', #, color='variable'
         animation_frame='E(r)',
-        labels={'peso': 'Peso na carteira', 'ticker': ''}
+        title="Composição da carteira",
+        labels={'peso': '', 'ticker': ''}
     )
     fig["layout"].pop("updatemenus")
     fig.update_layout(xaxis_tickformat='%')
